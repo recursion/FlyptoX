@@ -1,6 +1,7 @@
 // accountManager
 // withhold / clear accounts
 
+var bookshelf = require('../utils/bookshelf');
 var Promise = require("bluebird");
 var User = require("../models/User");
 var Account = require("../models/Account");
@@ -34,12 +35,27 @@ var transfer = accountManager.transfer = function(account1, account2){
 // object map for calculating withholding requirements
 var calculateRequirements = accountManager.calculateRequirements = function(orderRequest){
 
-    // TODO: determine withhold rules for a market orderRequest?
-    // -> just hold all funds until order is resolved!
+    bookshelf.model('CurrencyPair').forge({id: orderRequest.currency_pair_id})
+      .fetch({withRelated: ['base_currency', 'quote_currency']})
+      .then(function(pair){
+        console.log('---->', pair.related('base_currency'));
+        //console.log('---->', pair.related('quote_currency'));
+        //console.log('---->', pair);
+      })
+      .catch(function(err){
+        console.log(err);
+      });
 
-    // account to place the hold against
+
+    // if market order
+      // -> hold all funds until order is resolved!
+
+    // determine account to place the hold against
+      // currency should be 1 since we need to withhold dollars
+
+
     var account = 1; // SHOULD NOT BE SET TO 1
-    // currency should be 1 since we need to withhold dollars
+
     //console.log('Calculating buy requirements for: ', orderRequest);
     return new Promise(function(resolve, reject){
       // use currency pair and order.side to determine account to use
@@ -128,15 +144,11 @@ accountManager.withhold = function(orderRequest){
             });
 
         })
+      // error finding user - reject orderRequest
         .catch(function(err){
           console.log(err);
           reject(err);
         });
 
-      })
-
-      // error finding user - reject orderRequest
-      .catch(function(err){
-        reject(err);
       });
 };
