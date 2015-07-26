@@ -166,7 +166,16 @@ gulp.task('test:client', ['lint:client'], function(done) {
 
 
 // test server files
-gulp.task('test:server', ['lint:server'], function() {
+gulp.task('test:server', ['lint:server', 'clean-db'], function() {
+
+  // set reporting options
+  if (!argv.spec){
+    argv.reporter = 'nyan';
+  } else {
+    argv.reporter = 'spec';
+  }
+
+  // set the starting environment so we can set back when done
   var startEnv = process.env.NODE_ENV;
   process.env.NODE_ENV = 'test';
 
@@ -288,7 +297,7 @@ gulp.task('build-dist', ['sass', 'scripts-concat', 'copy-html'], function(){
 
 // a task for just running linter/tests on the server
 gulp.task('serverTestRunner', function(){
-  argv.reporter = 'nyan';
+
   process.env.TESTRUNNER = 'continuous';
   gulp.start('test:server');
   gulp.watch(paths.server.all, ['test:server']);

@@ -1,6 +1,7 @@
 var chai = require('chai');
 var expect = chai.expect;
 var utils = require('../helpers.js');
+
 var Trade = require('../../models/Trade');
 
 // add a collection

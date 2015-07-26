@@ -1,11 +1,11 @@
 var chai = require('chai');
 var chaiAsPromised = require("chai-as-promised");
 var expect = chai.expect;
+chai.use(chaiAsPromised);
 
 var orderDesk = require('../../marketEngine/orderDesk.js');
 var utils = require('../helpers.js');
-
-chai.use(chaiAsPromised);
+var Account = require("../../models/Account");
 
 describe('orderDesk', function(){
   var uid = null;
@@ -17,14 +17,49 @@ describe('orderDesk', function(){
       email: 'farnsworth@planetexpress.com',
       fullname: 'Professor Hubert J. Farnsworth'
     };
-
-    // create a user to test with
     utils.user.createCustom(myUser)
       .then(function(user){
+
+        // create a new usd wallet for this user
         uid = user.get('id');
+        Account.forge({
+          user_id: uid,
+          balance: 100000,
+          currency_id: 1,
+          available: 10000
+        })
+        .save()
+        .then(function(account){
+          return new Account({id: account.id}).fetch({withRelated: 'currency'})
+        })
+        .then(function(){
+          //console.log(account.related('currency').get('currency'));
+          //console.log(account.get('balance'));
+          return;
+        })
+        .then(function(){
+
+          // create a new BTC Wallet for this user
+          Account.forge({
+            user_id: uid,
+            balance: 100,
+            currency_id: 2,
+            available: 100
+          })
+          .save()
+          .then(function(account){
+            return new Account({id: account.id}).fetch({withRelated: 'currency'})
+          })
+          .then(function(){
+            //console.log(JSON.stringify(account));
+            //console.log(account.get('balance'));
+            //console.log(account.related('currency').get('currency'));
+            //console.log(account.get('balance'));
+          })
+        })
       })
       .catch(function(err){
-        console.error(err);
+        console.log(err);
       })
       .finally(done);
   });
@@ -45,7 +80,7 @@ describe('orderDesk', function(){
     // send the order to order desk
     orderDesk(myOrder)
       .then(function(order){
-        expect(order.id).to.not.equal(null);
+        expect(order.user_id).to.equal(uid);
       })
       .catch(function(err){
         expect(err).to.equal(null);

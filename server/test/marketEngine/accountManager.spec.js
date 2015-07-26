@@ -2,107 +2,143 @@ var chai = require('chai');
 var chaiAsPromised = require("chai-as-promised");
 var expect = chai.expect;
 
+var utils = require('../helpers.js');
 var accountManager = require('../../marketEngine/accountManager.js');
+
 var User = require("../../models/User");
 var Account = require("../../models/Account");
-var utils = require('../helpers.js');
 
 chai.use(chaiAsPromised);
 
 describe('accountManager', function(){
 
-  describe('#withhold', function(){
-    var uid = null;
+  var uid = null;
 
-    before(function(done){
-      var myUser = {
-        password: 'floydsRflamingosToo',
-        email: 'roger@waters.com',
-        fullname: 'Rogery Waters'
-      };
+  // account ids
+  var usd = null;
+  var btc = null;
 
-      // create a user to test with
-      utils.user.createCustom(myUser)
-        .then(function(user){
+  before(function(done){
+    var myUser = {
+      password: 'floydsRflamingosToo',
+      email: 'roger@waters.com',
+      fullname: 'Rogery Waters'
+    };
 
-          // create a new usd wallet for this user
-          uid = user.get('id');
+    // create a user to test with
+    utils.user.createCustom(myUser)
+      .then(function(user){
+
+        // create a new usd wallet for this user
+        uid = user.get('id');
+        Account.forge({
+          user_id: uid,
+          balance: 100000,
+          currency_id: 1,
+          available: 10000
+        })
+        .save()
+        .then(function(account){
+          usd = account.get('id');
+          return;
+        })
+        .then(function(){
+          // create a new BTC Wallet for this user
           Account.forge({
             user_id: uid,
-            balance: 100000,
-            currency_id: 1,
-            available: 10000
+            balance: 100,
+            currency_id: 2,
+            available: 100
           })
           .save()
           .then(function(account){
-            return new Account({id: account.id}).fetch({withRelated: 'currency'})
-          })
-          .then(function(){
-            //console.log(account.related('currency').get('currency'));
-            //console.log(account.get('balance'));
-            return;
-          })
-          .then(function(){
-
-            // create a new BTC Wallet for this user
-            Account.forge({
-              user_id: uid,
-              balance: 100,
-              currency_id: 2,
-              available: 100
-            })
-            .save()
-            .then(function(account){
-              return new Account({id: account.id}).fetch({withRelated: 'currency'})
-            })
-            .then(function(){
-              //console.log(JSON.stringify(account));
-              //console.log(account.get('balance'));
-              //console.log(account.related('currency').get('currency'));
-              //console.log(account.get('balance'));
-            })
+            btc = account.get('id');
+            done();
           })
         })
-        .catch(function(err){
-          console.log(err);
-        })
-        .finally(done);
-    });
+      })
+      .catch(function(err){
+        console.error(err);
+        done();
+      });
+  });
 
-    it('returns a promise of withholding an orders requirements', function(){
+  describe('#processOrder', function(){
+    // use these for test that need them
+    // user id
+    it('returns a promise of an order\'s requirements', function(done){
 
       var myOrder = {
         sequence: 1,
         currency_pair_id: 1,
         type: 'limit',
-        side: 'buy',
-        price: 300.01,
+        side: 'sell',
+        price: 350.00,
         size: 5,
         filled_size: 5,
         user_id: uid
       };
 
-      return expect(accountManager.withhold(myOrder)).to.eventually.have.property('requirements');
+      accountManager.processRequirements(myOrder)
+        .then(function(requirements){
+          // btc is the id of our users btc account
+          expect(requirements).to.have.property('account');
+        })
+        .catch(function(err){
+          console.log('WTF->', err);
+          expect(err).to.equal(null);
+        })
+        .finally(done);
+    });
 
+    it('returns the correct account to withhold against in a sell order', function(done){
 
-      /*
-      // send the order to order desk
-      accountManager.withholdFunds(myOrder)
+      var myOrder = {
+        sequence: 1,
+        currency_pair_id: 1,
+        type: 'limit',
+        side: 'sell',
+        price: 350.00,
+        size: 5,
+        user_id: uid
+      };
 
-        .then(function(response){
-         //success
-          expect(response.id).to.equal(uid);
-          //expect(response).to.equal(undefined);
-          done();
-         })
-         .catch(function(err){
-           expect(err).to.equal(undefined);
-           done();
-         });
-      */
-      });
+      accountManager.processRequirements(myOrder)
+        .then(function(requirements){
+          // btc is the id of our users btc account
+          expect(requirements.account).to.equal(btc);
+        })
+        .catch(function(err){
+          console.log('FRD->', err);
+          expect(err).to.equal(null);
+        })
+        .finally(done);
+    });
 
-    xit('withholds funds when its supposed to', function(){
+    it('returns the correct acocunt to withold against in a buy order', function(done){
+      var myOrder = {
+        sequence: 1,
+        currency_pair_id: 1,
+        type: 'limit',
+        side: 'buy',
+        price: 300.00,
+        size: 50,
+        user_id: uid
+      };
+
+      accountManager.processRequirements(myOrder)
+        .then(function(requirements){
+          // btc is the id of our users btc account
+          expect(requirements.account).to.equal(usd);
+        })
+        .catch(function(err){
+          expect(err).to.equal(null);
+        })
+        .finally(done);
+
+    });
+
+    xit('determines the correct amount of quote currency to hold in a buy', function(){
       var user_id = 1;
       new Account.forge({
         user_id: user_id,

@@ -1,6 +1,5 @@
 "use strict";
 
-var bookshelf = require('../utils/bookshelf.js');
 var User = require('../models/User');
 var Order = require('../models/Order');
 var Trade = require('../models/Trade');
@@ -56,9 +55,6 @@ utils.trade = {
     trade.maker_order_id = oids[0];
     trade.taker_order_id = oids[1];
     return Trade.forge(trade).save({}, {method: 'insert'});
-  },
-  deleteRows: function() {
-    return bookshelf.knex.raw('DELETE FROM trades');
   }
 };
 
@@ -83,9 +79,6 @@ utils.order = {
 
     // create the order and save it.
     return Order.forge(myOrder).save({}, {method: 'insert'});
-  },
-  deleteRows: function() {
-    return bookshelf.knex.raw('DELETE FROM orders');
   }
 };
 
@@ -111,8 +104,4 @@ utils.user = {
     return new User(params).save({}, {method: 'insert'});
   },
 
-  // delete all users rows
-  deleteRows: function() {
-    return bookshelf.knex.raw('DELETE FROM users');
-  }
 };
