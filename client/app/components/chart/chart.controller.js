@@ -5,7 +5,7 @@ app.controller('chartCtrl', ['$scope', '$interval', '$http', function($scope, $i
   $scope.options = {
             chart: {
                 type: 'sparklinePlus',
-                height: 450,
+                height: 600,
                 x: function(d, i){return i;},
                 xTickFormat: function(d) {
                     return d3.time.format('%x')(new Date($scope.data[d].x))
