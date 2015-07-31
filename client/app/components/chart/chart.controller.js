@@ -8,7 +8,8 @@ app.controller('chartCtrl', ['$scope', '$interval', '$http', function($scope, $i
                 height: 450,
                 x: function(d, i){return i;},
                 xTickFormat: function(d) {
-                    return d3.time.format('%x')(new Date($scope.data[d].x))
+                    return $scope.data[d].x;
+                    //return d3.time.format('%x')(new Date($scope.data[d].x))
                 },
                 transitionDuration: 250
             }
